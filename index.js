@@ -49,6 +49,41 @@ const client = new MongoClient(uri, {
 })
 async function run() {
   try {
+
+    // 1. need to make a db connection
+    const db = client.db('plantNet-session')
+    const usersCollection = db.collection('users')
+    const plantsCollection = db.collection('plants')
+
+    //2. save or update a user in db
+    app.post('/users/:email', async (req, res) => {
+      const email = req.params.email
+      const query = { email }
+      const user = req.body
+      // check if user exist in db
+      const isExist = await usersCollection.findOne(query)
+      if (isExist) {
+        return res.send(isExist)
+      }
+
+      const result = await usersCollection.insertOne({ ...user, role: 'customer', timestamp: Date.now() })
+      res.send(result)
+
+    })
+
+    // 3. save a plant data in db --------> then go client side to use the data
+    app.post('/plants', async (req, res) => {
+      const plant = req.body
+      const result = await plantsCollection.insertOne(plant)
+      res.send(result)
+    });
+
+    //  4. get all plants from db
+    app.get('/plants', async (req, res) => {
+      const result = await plantsCollection.find().limit(20).toArray()
+      res.send(result)
+    });
+
     // Generate jwt token
     app.post('/jwt', async (req, res) => {
       const email = req.body
